@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "四象限日记 · QUAD DIARY",
+  "short_name": "四象限日记",
+  "description": "本地优先的四象限日记，点标签、加照片，十秒记完一天。无账号、无云同步。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "any",
+  "background_color": "#1B2038",
+  "theme_color": "#1B2038",
+  "categories": ["lifestyle", "productivity"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
