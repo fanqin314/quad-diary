@@ -7,8 +7,10 @@
 <meta name="theme-color" content="#1B2038">
 <meta name="description" content="本地优先的四象限日记，点一点就记完一天。">
 <link rel="manifest" href="./manifest.json">
-<!-- JSZip：在线时用它打标准 zip；加载失败（离线）时回退到文件内的 makeZip -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer crossorigin="anonymous"></script>
+<!-- JSZip：本地 vendor 文件，不走 CDN —— 手机上断网、或 jsdelivr 被墙时，
+     备份导出不该跟着一起死。它由 sw.js 预缓存，装一次就一直在。
+     万一真读不到，下面还有内置 makeZip / unzipStored 兜底。 -->
+<script src="./vendor/jszip.min.js" defer></script>
 <link rel="icon" type="image/png" href="./icons/icon-192.png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -4845,7 +4847,7 @@ function cwZero(cv){
   // central directory 的 extra/comment/磁盘/属性字段统一置 0
   [30,32,34,36,38].forEach(o=>{ if(o===38) cv.setUint32(o,0,true); else cv.setUint16(o,0,true); });
 }
-/* 打包入口：优先 JSZip（CDN），不可用时回退到上面的 makeZip。
+/* 打包入口：优先 JSZip（本地 vendor，已进离线缓存），不可用时回退到上面的 makeZip。
    两条路径产出的 zip 结构一致，照片与中文名都能正常解压。 */
 async function packZip(files){
   if(window.JSZip){

@@ -4,12 +4,13 @@
  * 日记数据在 localStorage，照片在 IndexedDB，都不经过 SW。
  * 修改应用后请手动把 CACHE 版本号 +1，旧缓存会在 activate 时清掉。
  */
-const CACHE = 'quad-diary-shell-v32';
+const CACHE = 'quad-diary-shell-v33';
 const SHELL = [
   './',
   './index.html',
   './manifest.json',
   './kcb-data.js',
+  './vendor/jszip.min.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'
