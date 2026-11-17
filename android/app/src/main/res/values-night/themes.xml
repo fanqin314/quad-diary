@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 系统深色模式下换深色父主题：WebView 据此把 prefers-color-scheme
+         报成 dark，网页的「自动」主题才能真正跟着系统走。 -->
+    <style name="Theme.QuadDiary" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/startup_bg</item>
+        <item name="android:colorBackground">@color/startup_bg</item>
+        <item name="android:statusBarColor">@color/startup_bg</item>
+        <item name="android:navigationBarColor">@color/startup_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

@@ -1,0 +1,16 @@
+# 构建产物与本地环境，不进版本库
+.tools/
+.gradle/
+build/
+app/build/
+local.properties
+captures/
+.idea/
+*.iml
+
+# 签名密钥：这把 jks 等于「这个 App 的身份证」，
+# 仓库是公开的，不能传。丢了就再也无法覆盖安装旧版本，请自行备份。
+keystore.properties
+keystore/*.jks
+keystore/*.keystore
+*.keystore

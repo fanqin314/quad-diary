@@ -1,0 +1,23 @@
+pluginManagement {
+    repositories {
+        // 国内镜像优先：直连 Maven Central 会频繁被断流（CLOSE_WAIT 卡死），
+        // 阿里云这套能跑满速。官方仓库留在后面做兜底，镜像缺包时才回落。
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "QuadDiary"
+include ':app'

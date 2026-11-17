@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与网页 :root 的 bg 变量 #F4F0E4 一致。冷启动第一帧就铺这个色，
+         不然 WebView 还没画出来时是白的，一黑一亮很扎眼。 -->
+    <color name="startup_bg">#F4F0E4</color>
+
+    <!-- 自适应图标底色：近黑的冷灰，配白/灰四格 -->
+    <color name="ic_launcher_background">#171A26</color>
+</resources>

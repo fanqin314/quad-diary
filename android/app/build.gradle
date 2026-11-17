@@ -1,0 +1,73 @@
+plugins {
+    id 'com.android.application'
+}
+
+// ---------------------------------------------------------------------------
+// 签名：从根目录 keystore.properties 读，文件不存在就跳过签名（只出未签名包）。
+// 这样别人 clone 了也能直接编译，不会因为缺密钥卡住。
+// ---------------------------------------------------------------------------
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def hasKeystore = keystorePropsFile.exists() && keystoreProps['storeFile']
+
+android {
+    namespace 'io.github.fanqin314.quaddiary'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "io.github.fanqin314.quaddiary"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+        resourceConfigurations += ['zh', 'en']
+    }
+
+    signingConfigs {
+        release {
+            if (hasKeystore) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // 只有一个 Activity，混淆收益为零，反而会让 WebView 相关的栈难读。
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        // JDK 21 编译，但字节码降到 17：D8 认得，老设备也稳。
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        // 本工程是 WebView 壳，lint 的多数建议不适用；别让它挡住打包。
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    // assets 里的网页资源已压缩过（图片、JS），再压一遍只是浪费构建时间。
+    androidResources {
+        noCompress 'js', 'json', 'png', 'webp', 'html', 'css', 'md'
+    }
+}
+
+dependencies {
+    // WebViewAssetLoader：把 assets 映射成 https://appassets.androidplatform.net
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

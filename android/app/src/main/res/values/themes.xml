@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 无 ActionBar：整个界面就是 WebView。主题只负责「第一帧的颜色」，
+         真正的状态栏图标亮暗由 MainActivity.applySystemBars() 在运行时决定。 -->
+    <style name="Theme.QuadDiary" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/startup_bg</item>
+        <item name="android:colorBackground">@color/startup_bg</item>
+        <item name="android:statusBarColor">@color/startup_bg</item>
+        <item name="android:navigationBarColor">@color/startup_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
