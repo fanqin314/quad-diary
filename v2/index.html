@@ -267,6 +267,25 @@
 .desk,.card,.grow .bar{transition:background .18s,border-color .18s}
 .desk.in{animation:fadeUp .22s cubic-bezier(.22,.9,.25,1)}
 
+.wkp{border-bottom:1px solid var(--rule);padding:9px 0 7px}
+.wkp .h{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim)}
+.wkp .h b{font-size:12.5px;color:var(--ink);font-weight:500}
+.wkp .h .sub{flex:1;font-size:10px}
+.wkp .h .pick{margin-left:auto;font-size:10px;border:1px solid var(--rule);background:none;border-radius:99px;padding:3px 10px;color:var(--ink);cursor:pointer;font-family:inherit}
+.wl{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 0;color:var(--ink)}
+.wl i{width:11px;height:11px;border:1px solid var(--ink);border-radius:2px;flex:none}
+.wl.on i{background:var(--ink)}
+.wl.on span{text-decoration:line-through;opacity:.45}
+.wl em{font-style:normal;font-size:9.5px;color:var(--dim);border:1px solid var(--rule);border-radius:99px;padding:1px 6px;margin-left:auto}
+.picked{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.pt{font-size:11px;font-family:inherit;border:1px solid var(--rule);background:none;border-radius:99px;padding:4px 9px;color:rgba(20,20,20,.6);cursor:pointer}
+.pt.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.goal{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid var(--rule2);font-size:13px}
+.goal .gp{font-size:10px;color:var(--dim);margin-left:auto}
+.goal .gdel{border:0;background:none;color:var(--dim);font-size:13px;cursor:pointer;font-family:inherit}
+select#tGoal{font-family:inherit;font-size:11px;border:1px solid var(--rule);background:none;border-radius:99px;padding:6px 8px;color:var(--ink);margin-top:6px;width:100%}
+.gt{font-size:9.5px;color:var(--dim);border:1px solid var(--rule);border-radius:99px;padding:1px 6px;margin-left:6px}
+
 /* ===== 周视图日程（照参考文件的结构） ===== */
 .calwrap{margin-top:10px;border-top:1px solid var(--rule)}
 .calhead{display:grid;grid-template-columns:34px repeat(7,1fr);padding:8px 0 6px;border-bottom:1px solid var(--rule)}
@@ -307,6 +326,7 @@
         <span class="dsay" id="dashSay">今天还空着</span>
         <span class="dright" id="dashStreak"></span>
       </div>
+      <div class="wkp" id="wkp"></div>
       <div class="yday hide" id="yday">
         <span>昨天写了</span><b id="ydayText">—</b>
         <span class="yact"><button data-a="done">做到了</button><button data-a="miss">没做</button></span>
@@ -382,17 +402,24 @@ const MOOD_TAGS=['雀跃','开心','期待','感激','焦虑','烦躁','生气',
 const TAGS={past_event:EVENT_TAGS,future_event:EVENT_TAGS,past_emotion:MOOD_TAGS,future_emotion:MOOD_TAGS};
 const TQ=['重要 · 紧急','重要 · 不紧急','紧急 · 不重要','都不'];
 const DAILY_MAX=3;
+const GOAL_MAX=3;
+function wkStart(d){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;}
+function wkKey(d){return keyOf(wkStart(d));}
+function weekIds(k){return ((DB.weeks||{})[k]||[]).filter(id=>DB.tasks.some(t=>t.id===id));}
+function setWeekIds(k,ids){DB.weeks=DB.weeks||{};DB.weeks[k]=ids.slice(0,3);save();}
+function goalOf(t){return t.goal?DB.goals.find(g=>g.id===t.goal):null;}
+let wkPickOpen=false;
 
 function uid(){return 'x'+Math.random().toString(36).slice(2,9);}
 function blankDay(){const q={};QUADS.forEach(x=>q[x.k]={tags:[],note:''});return {quads:q,courseNotes:{},gaps:{}};}
 function load(){
   try{const raw=JSON.parse(localStorage.getItem(KEY)||'null');
     if(raw&&typeof raw==='object'){
-      raw.days=raw.days||{}; raw.tasks=raw.tasks||[]; raw.daily=raw.daily||[]; raw.sparks=raw.sparks||[]; raw.yday=raw.yday||null;
+      raw.days=raw.days||{}; raw.tasks=raw.tasks||[]; raw.daily=raw.daily||[]; raw.sparks=raw.sparks||[]; raw.yday=raw.yday||null; raw.goals=raw.goals||[]; raw.weeks=raw.weeks||{};
       return raw;
     }
   }catch(e){}
-  return {days:{},tasks:[],daily:[],sparks:[],yday:null};
+  return {days:{},tasks:[],daily:[],sparks:[],yday:null,goals:[],weeks:{}};
 }
 let DB=load();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}}
@@ -463,7 +490,43 @@ function renderToday(){
 
   const cs=coursesOn(cur);
   $('#courseMeta').textContent=cs.length?('· '+cs.length+' 节'):'· 没课';
-  renderQmap(); renderDesk();
+  renderQmap(); renderDesk(); renderWkp();
+}
+function renderWkp(){
+  const host=$('#wkp'); if(!host)return;
+  const k=wkKey(cur), ids=weekIds(k);
+  const ts=ids.map(id=>DB.tasks.find(t=>t.id===id)).filter(Boolean);
+  const dn=ts.filter(t=>t.done).length;
+  if(wkPickOpen){
+    const pool=DB.tasks.filter(t=>!t.done&&ids.indexOf(t.id)<0).slice(0,12);
+    host.innerHTML='<div class="h"><b>挑本周的 3 件</b><button class="pick" data-close="1">好</button></div>'
+      +(ts.length?'<div class="picked">'+ts.map(t=>'<button class="pt on" data-unpick="'+t.id+'">'+esc(t.title)+' ×</button>').join('')+'</div>':'')
+      +(pool.length?'<div class="picked">'+pool.map(t=>'<button class="pt" data-pick="'+t.id+'">'+esc(t.title)+'</button>').join('')+'</div>':'<div class="empty">任务里没有可挑的了</div>');
+    return;
+  }
+  if(!ts.length){
+    host.innerHTML='<div class="h"><b>本周</b><span class="sub">还没挑事</span><button class="pick" data-open="1">挑 3 件</button></div>';
+    return;
+  }
+  host.innerHTML='<div class="h"><b>本周 '+dn+'/'+ts.length+'</b><span class="sub">'+(dn===ts.length?'都做完了':(dn?'继续':'还没动'))+'</span><button class="pick" data-open="1">换</button></div>'
+    +ts.map(t=>'<div class="wl'+(t.done?' on':'')+'" data-wtid="'+t.id+'"><i></i><span>'+esc(t.title)+'</span>'
+      +(t.goal&&goalOf(t)?'<em>'+esc(goalOf(t).name)+'</em>':'')+'</div>').join('');
+}
+function goalsHTML(){
+  const gs=DB.goals||[];
+  let h='<div class="sec"><b>目标</b>最多 '+GOAL_MAX+' 个<span class="r">'+gs.length+' / '+GOAL_MAX+'</span></div>';
+  if(gs.length){
+    h+=gs.map(g=>{
+      const ts=DB.tasks.filter(t=>t.goal===g.id), dn=ts.filter(t=>t.done).length;
+      return '<div class="goal"><b>'+esc(g.name)+'</b>'
+        +'<span class="gp">'+(ts.length?dn+' / '+ts.length+' 件':'还没有事')+(g.due?'　·　'+dShort(parseKey(g.due)):'')+'</span>'
+        +'<button class="gdel" data-gdel="'+g.id+'">×</button></div>';
+    }).join('');
+  }else{
+    h+='<div class="empty">还没有目标。一个就够——「考过四级」「把 v2 做完」。</div>';
+  }
+  if(gs.length<GOAL_MAX) h+='<div class="addrow"><input id="goalTitle" placeholder="＋ 一个目标"><input id="goalDue" type="date"><button class="go" id="goalAdd">加上</button></div>';
+  return h;
 }
 function renderQmap(){
   const d=day(keyOf(cur),false), dusk=isDusk(), order=quadOrder();
@@ -595,7 +658,7 @@ function renderTasks(){
       +'<button class="plus'+(full?' full':'')+'" data-plus="'+d.id+'">'+(full?'✓':'+')+'</button>'
       +'<button class="del" data-deld="'+d.id+'">×</button></div>';
   }).join('');
-  host.innerHTML='<div class="sec"><b>日常</b>每天打卡 · 最多 '+DAILY_MAX+' 个<span class="r">'+DB.daily.length+' / '+DAILY_MAX+'</span></div>'
+  host.innerHTML=goalsHTML()+'<div class="sec"><b>日常</b>每天打卡 · 最多 '+DAILY_MAX+' 个<span class="r">'+DB.daily.length+' / '+DAILY_MAX+'</span></div>'
     +(dl||'<div class="empty">还没有日常。背单词、喝水、跑步这种天天做的，放这儿。</div>')
     +(DB.daily.length<DAILY_MAX?'<div class="addrow"><input id="dlyTitle" placeholder="＋ 加一个日常，比如「喝水」"><div class="q" id="dlyQRow"><button data-quota="1" class="on">每天 1 次</button><button data-quota="3">3 次</button><button data-quota="5">5 次</button><button data-quota="10">10 次</button></div><button class="go" id="dlyAdd">加上</button></div>':'')
     // 有限
@@ -636,10 +699,11 @@ function renderTdesk(){
     +(list.length?list.map(t=>{
       const over=!t.done&&t.due&&parseKey(t.due)<today;
       return '<div class="task'+(t.done?' done':'')+'" data-tid="'+t.id+'"><button class="box"></button>'
-        +'<span class="tx">'+esc(t.title)+'</span>'
+        +'<span class="tx">'+esc(t.title)+(t.goal&&goalOf(t)?'<span class="gt">'+esc(goalOf(t).name)+'</span>':'')+'</span>'
         +'<span class="st'+(over?' over':'')+'">'+(t.due?dShort(parseKey(t.due)):'')+(t.min?' · '+t.min+'m':'')+'</span></div>';
     }).join(''):'<div class="empty">这一格还空着</div>')
     +'<div class="addrow"><input id="tTitle" placeholder="＋ 加一件要做的">'
+    +(DB.goals.length?'<select id="tGoal"><option value="">不挂目标</option>'+DB.goals.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('')+'</select>':'')
     +'<button class="go" id="tAdd">加到「'+TQ[openT]+'」</button></div>';
 }
 /* 甘特：14 天横轴，有限任务一根横条 */
@@ -741,7 +805,13 @@ function renderReview(){
   }).join('')
     +'<div class="sec"><b>这天完成</b>'+(volume(keyOf(d))||'0')+' 次</div>'
     +(doneTasks.length?doneTasks.map(t=>'<div class="streak"><span class="nm">'+esc(t.title)+'</span><span class="v">做完</span></div>').join('')
-      :'<div class="empty">这天没有完成记录</div>');
+      :'<div class="empty">这天没有完成记录</div>')
+    +(function(){
+      const k=wkKey(d), planN=weekIds(k).length;
+      const wkd=DB.tasks.filter(t=>t.done&&t.doneAt&&wkKey(parseKey(t.doneAt))===k);
+      const mins=wkd.reduce((s,t)=>s+(t.min||0),0);
+      return '<div class="sec"><b>本周</b>计划 '+planN+' · 完成 '+wkd.length+' · 投入 '+(mins/60).toFixed(1)+' 小时</div>';
+    })();
 }
 function yearTotal(y){
   let n=0; DB.tasks.forEach(t=>{if(t.done&&t.doneAt&&t.doneAt.startsWith(String(y)))n++;});
@@ -779,6 +849,7 @@ function go(s){
   $$('.screen').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));
   $$('#dock button[data-s]').forEach(x=>x.classList.toggle('on',x.dataset.s===s));
   $('#wrap').scrollTop=0;
+  if(s==='today')renderWkp();
   if(s==='tasks')renderTasks();
   if(s==='review')renderReview();
   if(s==='week')renderWeek();
@@ -862,7 +933,7 @@ $('#taskBody').addEventListener('click',e=>{
     const inp=$('#tTitle'), v=(inp&&inp.value||'').trim();
     if(v){
       const k=todayKey();
-      DB.tasks.push({id:uid(),title:v,q:newTaskQ,min:25,start:k,due:k,done:false,doneAt:null});
+      const gs=$('#tGoal'); DB.tasks.push({id:uid(),title:v,q:newTaskQ,min:25,start:k,due:k,done:false,doneAt:null,goal:gs?gs.value:''});
       save(); renderTasks();
     }
     return;
@@ -887,6 +958,29 @@ $('#revBack').onclick=()=>{revView='month';$$('#revSeg button').forEach(x=>x.cla
 $('#revBody').addEventListener('click',e=>{
   const m=e.target.closest('.ym'); if(m){revMonth=+m.dataset.m;revDate=new Date().getFullYear()+'-'+pad(revMonth+1)+'-01';revView='month';$$('#revSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='month'));renderReview();return;}
   const d=e.target.closest('.d[data-day]'); if(d){revDate=d.dataset.day;revView='day';$$('#revSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v==='day'));renderReview();}
+});
+$('#wkp').addEventListener('click',e=>{
+  if(e.target.closest('[data-open]')){ wkPickOpen=true; renderWkp(); return; }
+  if(e.target.closest('[data-close]')){ wkPickOpen=false; renderWkp(); return; }
+  const pk=e.target.closest('[data-pick]');
+  if(pk){ const k=wkKey(cur), ids=weekIds(k); if(ids.length<3&&ids.indexOf(pk.dataset.pick)<0){ids.push(pk.dataset.pick); setWeekIds(k,ids);} renderWkp(); return; }
+  const up=e.target.closest('[data-unpick]');
+  if(up){ const k=wkKey(cur); setWeekIds(k,weekIds(k).filter(x=>x!==up.dataset.unpick)); renderWkp(); return; }
+  const w=e.target.closest('[data-wtid]');
+  if(w){ const x=DB.tasks.find(y=>y.id===w.dataset.wtid); if(x){x.done=!x.done;x.doneAt=x.done?todayKey():null;save();renderWkp();} }
+});
+$('#taskBody').addEventListener('click',e=>{
+  if(e.target.id==='goalAdd'){
+    const n=$('#goalTitle'), v=(n&&n.value||'').trim();
+    if(v&&DB.goals.length<GOAL_MAX){
+      const due=$('#goalDue');
+      DB.goals.push({id:uid(),name:v,due:due&&due.value?due.value:'',why:''});
+      save(); renderTasks();
+    }
+    return;
+  }
+  const gd=e.target.closest('[data-gdel]');
+  if(gd){ DB.goals=DB.goals.filter(g=>g.id!==gd.dataset.gdel); DB.tasks.forEach(x=>{if(x.goal===gd.dataset.gdel)x.goal='';}); save(); renderTasks(); }
 });
 $('#fab').onclick=openCurtain;
 $('#scrim').onclick=closeCurtain;
