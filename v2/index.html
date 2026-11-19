@@ -288,6 +288,27 @@
 select#tGoal{flex:1 1 100%;font-family:inherit;font-size:11px;border:1px solid var(--rule);background:none;border-radius:99px;padding:6px 8px;color:var(--ink);margin-top:3px;width:100%}
 .gt{font-size:9.5px;color:var(--dim);border:1px solid var(--rule);border-radius:99px;padding:1px 6px;margin-left:6px}
 
+.cbar{display:flex;align-items:center;gap:10px;padding:4px 0 10px}
+.cbar b{font-family:var(--serif);font-size:17px;font-weight:400}
+.cbar span{margin-left:auto;font-size:10px;color:var(--dim);font-family:var(--serif)}
+.mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.mcal .wd{font-size:9px;color:var(--dim);text-align:center;padding-bottom:6px;font-family:var(--serif)}
+.mc{aspect-ratio:1;border:1px solid var(--rule2);background:none;font-family:inherit;color:var(--ink);position:relative;padding:4px 0 0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.mc i{font-style:normal;font-size:11px;font-family:var(--serif)}
+.mc.out{color:rgba(20,20,20,.16);border-color:transparent}
+.mc.today{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.mc.sel{background:var(--ink);color:var(--paper)}
+.mc.sel.today{box-shadow:none}
+.mk{font-size:8px;line-height:1;border-radius:99px;min-width:12px;padding:1px 0;text-align:center}
+.mk.t{background:var(--ink);color:var(--paper)}
+.mk.d{background:none;color:var(--dim);border:1px solid var(--rule2)}
+.mc.sel .mk.t{background:var(--paper);color:var(--ink)}
+.dpanel{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.dpanel .dh{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.dpanel .dh .n{font-family:var(--serif);font-size:14px}
+.dpanel .dh .t{font-size:10px;color:var(--dim)}
+.dpanel .dh .s{margin-left:auto;font-size:10px;color:var(--dim)}
+
 /* ===== 周视图日程（照参考文件的结构） ===== */
 .calwrap{margin-top:10px;border-top:1px solid var(--rule)}
 .calhead{display:grid;grid-template-columns:34px repeat(7,1fr);padding:8px 0 6px;border-bottom:1px solid var(--rule)}
@@ -445,6 +466,7 @@ let cur=new Date(); cur.setHours(0,0,0,0);
 let openQuad=null;
 let revView='year', revMonth=new Date().getMonth(), revDate=null;
 let taskView='list', wkDay=new Date(); wkDay.setHours(0,0,0,0);
+let calMonth=new Date(); calMonth.setDate(1); let calDay=null;
 let newTaskQ=0;
 let newQuota=1;
 
@@ -716,31 +738,39 @@ function renderTdesk(){
 }
 /* 甘特：14 天横轴，有限任务一根横条 */
 function calendarHTML(){
-  const mon=new Date(wkDay); mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
-  const days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
-  const H0=8,H1=22,HH=46;
-  const head='<div class="calhead"><div></div>'+days.map(d=>'<div class="'+(keyOf(d)===keyOf(wkDay)?'on':'')+'" data-cd="'+keyOf(d)+'">'+WEEK[d.getDay()]+'<br>'+d.getDate()+'</div>').join('')+'</div>';
-  const axis='<div class="calaxis">'+Array.from({length:H1-H0},(_,i)=>'<div>'+(H0+i)+':00</div>').join('')+'</div>';
-  const allday='<div class="allday"><div class="lb">全天</div>'+days.map(d=>{
-    const items=DB.tasks.filter(t=>t.due===keyOf(d)&&!t.time);
-    return '<div class="cell">'+items.map(t=>esc(t.title)).join('<br>')+'</div>';
-  }).join('')+'</div>';
-  const cols=days.map(d=>{
-    const k=keyOf(d); let c='';
-    coursesOn(d).forEach(cc=>{
-      const a=periodT(cc.start), b=periodT(cc.start+(cc.span||2)-1);
-      const s=hm(a.s), e=hm(b.e);
-      const top=(s-H0*60)/60*HH, h=Math.max(20,(e-s)/60*HH-2);
-      c+='<div class="cblock cls" style="top:'+top+'px;height:'+h+'px">'+esc(cc.name)+'<br>'+esc(cc.room||'')+'</div>';
-    });
-    DB.tasks.filter(t=>t.due===k&&t.time).forEach(t=>{
-      const s=hm(t.time), top=(s-H0*60)/60*HH, h=Math.max(20,(t.min||30)/60*HH-2);
-      c+='<div class="cblock task'+(t.done?' done':'')+'" style="top:'+top+'px;height:'+h+'px">'+esc(t.title)+'</div>';
-    });
-    return '<div class="calcol">'+Array.from({length:H1-H0},(_,i)=>'<div class="hr"></div>').join('')+c+'</div>';
-  }).join('');
-  return '<div class="sec"><b>周日程</b>第 '+weekOf(mon)+' 周 · 点星期切日<span class="r">'+DB.tasks.filter(t=>!t.done).length+' 件没做完</span></div>'
-    +head+allday+'<div class="calwrap"><div class="calbody">'+axis+'<div class="calcols">'+cols+'</div></div></div>';
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  const first=new Date(y,m,1);
+  const start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
+  const tk=todayKey();
+  let cells='';
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const k=keyOf(d), inM=d.getMonth()===m;
+    const ts=DB.tasks.filter(t=>t.due===k);
+    const nd=day(k,false), qn=QUADS.filter(q=>filled(nd.quads[q.k])).length;
+    let mk='';
+    if(ts.length)mk='<span class="mk t">'+ts.length+'</span>';
+    else if(qn)mk='<span class="mk d">'+qn+'</span>';
+    cells+='<button class="mc'+(inM?'':' out')+(k===tk?' today':'')+(k===calDay?' sel':'')+'" data-mday="'+k+'"><i>'+d.getDate()+'</i>'+mk+'</button>';
+  }
+  let panel='<div class="dpanel"><div class="empty">点一天，安排那天。</div></div>';
+  if(calDay){
+    const dd=parseKey(calDay);
+    const ts=DB.tasks.filter(t=>t.due===calDay).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
+    panel='<div class="dpanel"><div class="dh"><span class="n">'+pad(dd.getMonth()+1)+'.'+pad(dd.getDate())+'</span>'
+      +'<span class="t">周'+WEEK[dd.getDay()]+(calDay===tk?' · 今天':'')+'</span>'
+      +'<span class="s">'+ts.length+' 件</span></div>'
+      +(ts.length?ts.map(x=>'<div class="task'+(x.done?' done':'')+'" data-tid="'+x.id+'"><button class="box"></button>'
+          +'<span class="tx">'+esc(x.title)+'</span>'
+          +'<span class="st">'+(x.time?x.time+' · ':'')+(x.min?x.min+'m':'')+'</span></div>').join('')
+        :'<div class="empty">这天还没安排</div>')
+      +'<div class="addrow"><input id="calTitle" placeholder="＋ 那天要做点什么">'
+      +'<input id="calTime" class="due" placeholder="19:30">'
+      +'<button class="go" id="calAdd">加上</button></div></div>';
+  }
+  return '<div class="cbar"><button class="navb" data-mprev="1">‹</button><b>'+(m+1)+' 月</b><button class="navb" data-mnext="1">›</button><span>'+y+'</span></div>'
+    +'<div class="mcal"><div class="wd">一</div><div class="wd">二</div><div class="wd">三</div><div class="wd">四</div><div class="wd">五</div><div class="wd">六</div><div class="wd">日</div>'+cells+'</div>'
+    +panel;
 }
 /* ============================================================
    回看：年 → 月 → 日
@@ -940,8 +970,19 @@ $('#taskBody').addEventListener('click',e=>{
   if(del){ DB.daily=DB.daily.filter(x=>x.id!==del.dataset.deld); save(); renderTasks(); return; }
   const tq=e.target.closest('button[data-tq]');
   if(tq){ openT=+tq.dataset.tq; renderTmap(); renderTdesk(); return; }
-  const cd=e.target.closest('[data-cd]');
-  if(cd){ wkDay=parseKey(cd.dataset.cd); renderTasks(); return; }
+  const md=e.target.closest('[data-mday]');
+  if(md){ calDay=md.dataset.mday; renderTasks(); return; }
+  if(e.target.closest('[data-mprev]')){ calMonth.setMonth(calMonth.getMonth()-1); renderTasks(); return; }
+  if(e.target.closest('[data-mnext]')){ calMonth.setMonth(calMonth.getMonth()+1); renderTasks(); return; }
+  if(e.target.id==='calAdd'){
+    const inp=$('#calTitle'), v=(inp&&inp.value||'').trim();
+    if(v&&calDay){
+      const tt=$('#calTime'), tm=(tt&&tt.value||'').trim();
+      DB.tasks.push({id:uid(),title:v,q:openT,min:25,start:todayKey(),due:calDay,time:/^\d{1,2}:\d{2}$/.test(tm)?tm:'',done:false,doneAt:null,goal:''});
+      save(); renderTasks();
+    }
+    return;
+  }
   const aq=e.target.closest('button[data-aq]');
   if(aq){ newTaskQ=+aq.dataset.aq; renderTdesk(); return; }
   const qb=e.target.closest('button[data-quota]');
