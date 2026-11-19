@@ -150,7 +150,8 @@
   .task.done .box{background:var(--ink);border-color:var(--ink)}
   .task.done .tx{color:rgba(20,20,20,.3);text-decoration:line-through}
   .task .st{margin-left:auto;font-family:var(--serif);font-size:9.5px;color:var(--dim)}
-  .task .st.over{color:#C0392B}
+  .task .mv{margin-left:auto;font-size:9.5px;font-family:inherit;border:1px solid var(--rule);background:none;border-radius:99px;padding:2px 8px;color:var(--ink);cursor:pointer}
+  .task .mv:active{transform:scale(.94)}
   .addrow{margin-top:14px;padding-top:11px;border-top:1px solid var(--rule)}
   .addrow input{width:100%;border:0;border-bottom:1px solid var(--rule);background:none;outline:none;
         font-family:inherit;font-size:12.5px;padding:4px 0 5px;color:var(--ink)}
@@ -700,7 +701,7 @@ function renderTdesk(){
       const over=!t.done&&t.due&&parseKey(t.due)<today;
       return '<div class="task'+(t.done?' done':'')+'" data-tid="'+t.id+'"><button class="box"></button>'
         +'<span class="tx">'+esc(t.title)+(t.goal&&goalOf(t)?'<span class="gt">'+esc(goalOf(t).name)+'</span>':'')+'</span>'
-        +'<span class="st'+(over?' over':'')+'">'+(t.due?dShort(parseKey(t.due)):'')+(t.min?' · '+t.min+'m':'')+'</span></div>';
+        +(over?'<button class="mv" data-mv="'+t.id+'">今天</button>':'<span class="st">'+(t.due?dShort(parseKey(t.due)):'')+(t.min?' · '+t.min+'m':'')+'</span>')+'</div>';
     }).join(''):'<div class="empty">这一格还空着</div>')
     +'<div class="addrow"><input id="tTitle" placeholder="＋ 加一件要做的">'
     +(DB.goals.length?'<select id="tGoal"><option value="">不挂目标</option>'+DB.goals.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('')+'</select>':'')
@@ -771,7 +772,8 @@ function renderReview(){
       +streakRows()
       +'<div class="sec"><b>速记</b>'+(DB.sparks.length||0)+' 条</div><div class="sparklist">'+sparkRows()+'</div>'
       +'<div class="sec"><b>总数</b></div>'
-      +'<div class="streak"><span class="nm">今年完成</span><span class="v">'+yearTotal(y)+' 件</span></div>';
+      +'<div class="streak"><span class="nm">今年写下</span><span class="v">'+daysWrote(y)+' 天</span></div>'
+      +'<div class="streak"><span class="nm">做成</span><span class="v">'+yearTotal(y)+' 件</span></div>';
     return;
   }
   if(revView==='month'){
@@ -810,8 +812,17 @@ function renderReview(){
       const k=wkKey(d), planN=weekIds(k).length;
       const wkd=DB.tasks.filter(t=>t.done&&t.doneAt&&wkKey(parseKey(t.doneAt))===k);
       const mins=wkd.reduce((s,t)=>s+(t.min||0),0);
-      return '<div class="sec"><b>本周</b>计划 '+planN+' · 完成 '+wkd.length+' · 投入 '+(mins/60).toFixed(1)+' 小时</div>';
+      return '<div class="sec"><b>本周</b>挑了 '+planN+' 件 · 做成 '+wkd.length+' 件 · 花了 '+(mins/60).toFixed(1)+' 小时</div>';
     })();
+}
+function daysWrote(y){
+  let n=0;
+  Object.keys(DB.days).forEach(k=>{
+    if(!k.startsWith(String(y)))return;
+    const d=DB.days[k];
+    if(QUADS.some(q=>filled(d.quads&&d.quads[q.k]||{tags:[],note:''})))n++;
+  });
+  return n;
 }
 function yearTotal(y){
   let n=0; DB.tasks.forEach(t=>{if(t.done&&t.doneAt&&t.doneAt.startsWith(String(y)))n++;});
@@ -936,6 +947,12 @@ $('#taskBody').addEventListener('click',e=>{
       const gs=$('#tGoal'); DB.tasks.push({id:uid(),title:v,q:newTaskQ,min:25,start:k,due:k,done:false,doneAt:null,goal:gs?gs.value:''});
       save(); renderTasks();
     }
+    return;
+  }
+  const mv=e.target.closest('[data-mv]');
+  if(mv){
+    const x=DB.tasks.find(y=>y.id===mv.dataset.mv);
+    if(x){x.due=todayKey();save();renderTasks();}
     return;
   }
   const t=e.target.closest('.task[data-tid]');

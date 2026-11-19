@@ -1,8 +1,8 @@
 {
-  "version": "84ad471bb4d5",
+  "version": "d4fff4e0c3f0",
   "note": "这个文件由 android-v2/tools/make_version.py 生成，改网页后重跑一次再 push",
   "files": {
-    "index.html": "1173ab07f70cfd664e3b1f69edcd50380164ea4969d1f7b18c9e5b9187765886",
+    "index.html": "ead851b401b3410c973997225ba9569bd68011a3d7f8afbf33ab972325d44b60",
     "kcb-data.js": "0699cea022cc8a7ff934fae379ba255729cc11118e3675c9c753b495b7e43339",
     "manifest.json": "9496263c3dd377a253193c789cc1daa42e720da88dde75b05667d1827b67ea6d",
     "icons/icon-192.png": "106cac5d61c79fe211a4d5ac5b9b2c7095ee4a3f68ff715d0962826f11f8a056",
