@@ -1,0 +1,12 @@
+{
+  "version": "627fa6d24960",
+  "note": "这个文件由 android-v2/tools/make_version.py 生成，改网页后重跑一次再 push",
+  "files": {
+    "index.html": "8530f79417165d7789d7c0b8ec948ae7212a013f91ca7cab1693be8802383d93",
+    "kcb-data.js": "0699cea022cc8a7ff934fae379ba255729cc11118e3675c9c753b495b7e43339",
+    "manifest.json": "9496263c3dd377a253193c789cc1daa42e720da88dde75b05667d1827b67ea6d",
+    "icons/icon-192.png": "106cac5d61c79fe211a4d5ac5b9b2c7095ee4a3f68ff715d0962826f11f8a056",
+    "icons/icon-512.png": "a880a29f817d0f5ecd1f837fa4e8b63a6f56ee26cf4e6d7dd9ca45cb076279ea",
+    "icons/apple-touch-icon.png": "dd218762a0251a5e9876f506d9d53b34dbc7ee60e48a9b92d4acbf8cf85b5c50"
+  }
+}
