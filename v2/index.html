@@ -152,16 +152,17 @@
   .task .st{margin-left:auto;font-family:var(--serif);font-size:9.5px;color:var(--dim)}
   .task .mv{margin-left:auto;font-size:9.5px;font-family:inherit;border:1px solid var(--rule);background:none;border-radius:99px;padding:2px 8px;color:var(--ink);cursor:pointer}
   .task .mv:active{transform:scale(.94)}
-  .addrow{margin-top:14px;padding-top:11px;border-top:1px solid var(--rule)}
-  .addrow input{width:100%;border:0;border-bottom:1px solid var(--rule);background:none;outline:none;
+  .addrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:14px;padding-top:11px;border-top:1px solid var(--rule)}
+  .addrow input{flex:1 1 120px;min-width:0;border:0;border-bottom:1px solid var(--rule);background:none;outline:none;
         font-family:inherit;font-size:12.5px;padding:4px 0 5px;color:var(--ink)}
+  .addrow input.due{flex:0 0 86px;text-align:center;font-size:11px;border-bottom:1px solid var(--rule2)}
   .addrow input::placeholder{color:rgba(20,20,20,.26)}
-  .addrow .q{display:flex;gap:5px;margin-top:9px}
+  .addrow .q{flex:1 1 100%;display:flex;gap:5px;margin-top:3px}
   .addrow .q button{flex:1;text-align:center;font:inherit;font-size:10px;padding:6px 0;border:1px solid var(--rule);
         border-radius:2px;background:none;color:rgba(20,20,20,.45)}
   .addrow .q button.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-  .addrow .go{width:100%;margin-top:9px;font:inherit;font-size:12px;padding:9px 0;border:1px solid var(--ink);
-        border-radius:2px;background:var(--ink);color:var(--paper);letter-spacing:.06em}
+  .addrow .go{flex:none;width:auto;margin-left:auto;margin-top:3px;font:inherit;font-size:11.5px;padding:7px 16px;
+        border:1px solid var(--ink);border-radius:99px;background:none;color:var(--ink);letter-spacing:.04em}
 
   /* 甘特 */
   .gantt{margin-top:12px;overflow-x:auto;padding-bottom:4px}
@@ -263,7 +264,7 @@
 .ym{transition:background .18s,color .18s,transform .12s}
 .ym:active{transform:scale(.97)}
 .addrow .go{transition:transform .12s,opacity .18s}
-.addrow .go:active{transform:scale(.985)}
+.addrow .go:active{transform:scale(.985);background:var(--ink);color:var(--paper)}
 .navb,.pill,.tabs button,.days button{transition:background .16s,color .16s,border-color .16s}
 .desk,.card,.grow .bar{transition:background .18s,border-color .18s}
 .desk.in{animation:fadeUp .22s cubic-bezier(.22,.9,.25,1)}
@@ -284,7 +285,7 @@
 .goal{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid var(--rule2);font-size:13px}
 .goal .gp{font-size:10px;color:var(--dim);margin-left:auto}
 .goal .gdel{border:0;background:none;color:var(--dim);font-size:13px;cursor:pointer;font-family:inherit}
-select#tGoal{font-family:inherit;font-size:11px;border:1px solid var(--rule);background:none;border-radius:99px;padding:6px 8px;color:var(--ink);margin-top:6px;width:100%}
+select#tGoal{flex:1 1 100%;font-family:inherit;font-size:11px;border:1px solid var(--rule);background:none;border-radius:99px;padding:6px 8px;color:var(--ink);margin-top:3px;width:100%}
 .gt{font-size:9.5px;color:var(--dim);border:1px solid var(--rule);border-radius:99px;padding:1px 6px;margin-left:6px}
 
 /* ===== 周视图日程（照参考文件的结构） ===== */
@@ -513,6 +514,12 @@ function renderWkp(){
     +ts.map(t=>'<div class="wl'+(t.done?' on':'')+'" data-wtid="'+t.id+'"><i></i><span>'+esc(t.title)+'</span>'
       +(t.goal&&goalOf(t)?'<em>'+esc(goalOf(t).name)+'</em>':'')+'</div>').join('');
 }
+function parseDue(s){
+  s=String(s||'').trim(); if(!s)return '';
+  const m=s.match(/^(\d{1,2})[.\-\/月](\d{1,2})/);
+  if(m){const mo=+m[1], dd=+m[2]; if(mo>=1&&mo<=12&&dd>=1&&dd<=31)return new Date().getFullYear()+'-'+pad(mo)+'-'+pad(dd);}
+  return '';
+}
 function goalsHTML(){
   const gs=DB.goals||[];
   let h='<div class="sec"><b>目标</b>最多 '+GOAL_MAX+' 个<span class="r">'+gs.length+' / '+GOAL_MAX+'</span></div>';
@@ -526,7 +533,7 @@ function goalsHTML(){
   }else{
     h+='<div class="empty">还没有目标。一个就够——「考过四级」「把 v2 做完」。</div>';
   }
-  if(gs.length<GOAL_MAX) h+='<div class="addrow"><input id="goalTitle" placeholder="＋ 一个目标"><input id="goalDue" type="date"><button class="go" id="goalAdd">加上</button></div>';
+  if(gs.length<GOAL_MAX) h+='<div class="addrow"><input id="goalTitle" placeholder="＋ 一个目标"><input id="goalDue" class="due" placeholder="截止 12.12"><button class="go" id="goalAdd">加上</button></div>';
   return h;
 }
 function renderQmap(){
@@ -703,9 +710,9 @@ function renderTdesk(){
         +'<span class="tx">'+esc(t.title)+(t.goal&&goalOf(t)?'<span class="gt">'+esc(goalOf(t).name)+'</span>':'')+'</span>'
         +(over?'<button class="mv" data-mv="'+t.id+'">今天</button>':'<span class="st">'+(t.due?dShort(parseKey(t.due)):'')+(t.min?' · '+t.min+'m':'')+'</span>')+'</div>';
     }).join(''):'<div class="empty">这一格还空着</div>')
-    +'<div class="addrow"><input id="tTitle" placeholder="＋ 加一件要做的">'
+    +'<div class="addrow"><input id="tTitle" placeholder="＋ 加一件 · '+TQ[openT]+'">'
     +(DB.goals.length?'<select id="tGoal"><option value="">不挂目标</option>'+DB.goals.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('')+'</select>':'')
-    +'<button class="go" id="tAdd">加到「'+TQ[openT]+'」</button></div>';
+    +'<button class="go" id="tAdd">加上</button></div>';
 }
 /* 甘特：14 天横轴，有限任务一根横条 */
 function calendarHTML(){
@@ -991,7 +998,7 @@ $('#taskBody').addEventListener('click',e=>{
     const n=$('#goalTitle'), v=(n&&n.value||'').trim();
     if(v&&DB.goals.length<GOAL_MAX){
       const due=$('#goalDue');
-      DB.goals.push({id:uid(),name:v,due:due&&due.value?due.value:'',why:''});
+      DB.goals.push({id:uid(),name:v,due:parseDue(due&&due.value),why:''});
       save(); renderTasks();
     }
     return;
